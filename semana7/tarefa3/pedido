@@ -1,0 +1,92 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Pedido {
+    private List<ItemPedido> itens;
+    private LocalDateTime dataHora;
+    private Pagamento pagamento;
+    private boolean finalizado;
+
+    public Pedido() {
+        this.itens = new ArrayList<>();
+        this.dataHora = LocalDateTime.now();
+        this.finalizado = false;
+    }
+
+    public boolean adicionarItem(Produto produto, int quantidade) {
+        if (finalizado) {
+            System.out.println("Não é possível adicionar itens a um pedido já finalizado.");
+            return false;
+        }
+        try {
+            ItemPedido item = new ItemPedido(produto, quantidade);
+            this.itens.add(item);
+            return true;
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erro ao adicionar item: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public double calcularTotal() {
+        double total = 0.0;
+        for (ItemPedido item : itens) {
+            total += item.calcularSubtotal();
+        }
+        return total;
+    }
+
+    public boolean finalizarPedido(Pagamento pagamento) {
+        if (itens.isEmpty()) {
+            System.out.println("Erro: O pedido deve ter pelo menos um item.");
+            return false;
+        }
+
+        double total = calcularTotal();
+        if (!pagamento.eSuficiente(total)) {
+            System.out.println("Erro: Valor pago (R$ " + pagamento.getValorPago() + ") é insuficiente para cobrir o total (R$ " + total + ").");
+            return false;
+        }
+
+        // Dá baixa no estoque de cada produto
+        for (ItemPedido item : itens) {
+            item.getProduto().darBaixaEstoque(item.getQuantidade());
+        }
+
+        this.pagamento = pagamento;
+        this.finalizado = true;
+        this.dataHora = LocalDateTime.now();
+        return true;
+    }
+
+    public void imprimirComprovante() {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        System.out.println("==========================================");
+        System.out.println("         CANTINA ESCOLAR - COMPROVANTE     ");
+        System.out.println("==========================================");
+        System.out.println("Data/Hora: " + dataHora.format(fmt));
+        System.out.println("------------------------------------------");
+        System.out.println("ITENS DO PEDIDO:");
+        for (ItemPedido item : itens) {
+            System.out.printf("- %s (x%d) -> Subtotal: R$ %.2f\n",
+                    item.getProduto().getNome(),
+                    item.getQuantidade(),
+                    item.calcularSubtotal());
+        }
+        System.out.println("------------------------------------------");
+        double total = calcularTotal();
+        System.out.printf("TOTAL: R$ %.2f\n", total);
+        System.out.println("Forma de Pagamento: " + pagamento.getTipo());
+        System.out.printf("Valor Pago: R$ %.2f\n", pagamento.getValorPago());
+        if (pagamento.getTipo() == FormaPagamento.DINHEIRO) {
+            System.out.printf("Troco: R$ %.2f\n", pagamento.calcularTroco(total));
+        }
+        System.out.println("==========================================");
+    }
+
+    public List<ItemPedido> getItens() { return itens; }
+    public LocalDateTime getDataHora() { return dataHora; }
+    public boolean isFinalizado() { return finalizado; }
+}

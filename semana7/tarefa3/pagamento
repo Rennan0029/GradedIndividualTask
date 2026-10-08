@@ -1,0 +1,23 @@
+public class Pagamento {
+    private FormaPagamento tipo;
+    private double valorPago;
+
+    public Pagamento(FormaPagamento tipo, double valorPago) {
+        this.tipo = tipo;
+        this.valorPago = valorPago;
+    }
+
+    public boolean eSuficiente(double totalPedido) {
+        return this.valorPago >= totalPedido;
+    }
+
+    public double calcularTroco(double totalPedido) {
+        if (!eSuficiente(totalPedido)) {
+            return 0.0;
+        }
+        return this.valorPago - totalPedido;
+    }
+
+    public FormaPagamento getTipo() { return tipo; }
+    public double getValorPago() { return valorPago; }
+}
